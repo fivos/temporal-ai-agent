@@ -1,0 +1,89 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getTemporalClient } from '../../../lib/temporalClient';
+import { sendPromptSignal, getResponseQuery } from '../../../workflows/chatAgent';
+
+const TASK_QUEUE = 'chat-agent';
+const MAX_POLLING_ATTEMPTS = 10;
+const POLLING_INTERVAL_MS = 1000;
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { prompt, workflowId } = body;
+
+    if (!prompt || typeof prompt !== 'string') {
+      return NextResponse.json(
+        { error: { message: 'Prompt is required.' } },
+        { status: 400 }
+      );
+    }
+
+    const client = await getTemporalClient();
+    // Use a unique workflowId per chat/session/user
+    const wfId = workflowId || 'chat-' + Math.random().toString(36).slice(2);
+
+    let handle;
+    
+    if (workflowId) {
+      try {
+        // If a workflowId was provided, try to get the existing workflow
+        handle = await client.workflow.getHandle(workflowId);
+        
+        // If found, just send the signal
+        await handle.signal(sendPromptSignal, prompt);
+      } catch (error) {
+        // If workflow not found, use signalWithStart to create it
+        handle = await client.workflow.signalWithStart('chatAgentWorkflow', {
+          taskQueue: TASK_QUEUE,
+          workflowId: workflowId,
+          signal: sendPromptSignal,
+          signalArgs: [prompt],
+        });
+      }
+    } else {
+      // For a new chat, use signalWithStart with the generated ID
+      handle = await client.workflow.signalWithStart('chatAgentWorkflow', {
+        taskQueue: TASK_QUEUE,
+        workflowId: wfId,
+        signal: sendPromptSignal,
+        signalArgs: [prompt],
+      });
+    }
+
+    // Poll for response with timeout
+    let response = '';
+    let attempts = 0;
+    
+    while (attempts < MAX_POLLING_ATTEMPTS) {
+      response = await handle.query(getResponseQuery);
+      
+      // If we have a non-empty response, return it
+      if (response) {
+        break;
+      }
+      
+      // Wait before polling again
+      await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL_MS));
+      attempts++;
+    }
+
+    return NextResponse.json({
+      id: workflowId || wfId,
+      object: 'chat.completion',
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: response || 'No response received from LLM within the timeout period.',
+          },
+        },
+      ],
+    });
+  } catch (error: any) {
+    console.error('Completions API error:', error);
+    return NextResponse.json(
+      { error: { message: error.message || 'Internal Server Error' } },
+      { status: 500 }
+    );
+  }
+} 
