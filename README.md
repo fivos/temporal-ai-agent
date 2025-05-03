@@ -21,3 +21,13 @@ npm run dev:combined
 # Run everything including the Temporal UI
 npm run dev:all
 ```
+
+## Running Temporal Locally
+
+To run Temporal locally using Docker:
+
+```bash
+git clone https://github.com/temporalio/docker-compose.git
+cd docker-compose
+docker compose up
+```
