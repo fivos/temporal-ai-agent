@@ -67,7 +67,8 @@ export default function ChatComponent({ chatId }: ChatComponentProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: input,
-          workflowId: chatId
+          workflowId: chatId,
+          stream: true
         }),
       });
       const data = await res.json();
