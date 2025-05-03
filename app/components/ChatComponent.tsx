@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, FormEvent, useEffect } from 'react';
 import { IconMicrophone, IconSend, IconChevronDown } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -10,15 +11,48 @@ interface Message {
 
 type Model = 'GPT-4o' | 'GPT-4.1' | 'Claude 3.5' | 'Gemini 2.5' | 'Grok 3' | 'Perplexity Sonar';
 
-export default function ChatComponent() {
+interface ChatComponentProps {
+  chatId?: string;
+}
+
+export default function ChatComponent({ chatId }: ChatComponentProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [workflowId, setWorkflowId] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<Model>('GPT-4o');
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const models: Model[] = ['GPT-4o', 'GPT-4.1', 'Claude 3.5', 'Gemini 2.5', 'Grok 3', 'Perplexity Sonar'];
+
+  // Load message history from the backend if chatId exists
+  useEffect(() => {
+    if (chatId) {
+      const fetchHistory = async () => {
+        setLoading(true);
+        try {
+          // Use the dedicated history endpoint
+          const res = await fetch(`/api/chat/${chatId}/history`);
+          
+          if (!res.ok) {
+            throw new Error(`Failed to fetch history: ${res.status}`);
+          }
+          
+          const data = await res.json();
+          
+          if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+            setMessages(data.history);
+          }
+        } catch (err) {
+          console.error('Failed to fetch message history:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchHistory();
+    }
+  }, [chatId]);
 
   const sendMessage = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,15 +67,44 @@ export default function ChatComponent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: input,
-          workflowId: workflowId || undefined
+          workflowId: chatId
         }),
       });
       const data = await res.json();
-      if (data.id && !workflowId) {
-        setWorkflowId(data.id);
+      
+      // If this is the first message and we don't have a chatId yet, redirect to the chat page with the new ID
+      if (data.id && !chatId) {
+        router.push(`/chat/${data.id}`);
+        return;
       }
+      
       const assistantReply = data.choices?.[0]?.message?.content || 'No response';
-      setMessages([...newMessages, { role: 'assistant' as const, content: assistantReply }]);
+      
+      // After sending a message, refresh the history from the dedicated endpoint
+      if (data.id) {
+        try {
+          const historyRes = await fetch(`/api/chat/${data.id}/history`);
+          if (historyRes.ok) {
+            const historyData = await historyRes.json();
+            if (historyData.history && Array.isArray(historyData.history)) {
+              setMessages(historyData.history);
+              setLoading(false);
+              inputRef.current?.focus();
+              return;
+            }
+          }
+        } catch (historyErr) {
+          console.error('Failed to fetch updated history:', historyErr);
+        }
+      }
+      
+      // Fallback to using the history from the completions response
+      if (data.history && Array.isArray(data.history)) {
+        setMessages(data.history);
+      } else {
+        // Last resort: client-side state management if history not available
+        setMessages([...newMessages, { role: 'assistant' as const, content: assistantReply }]);
+      }
     } catch (err) {
       setMessages([...newMessages, { role: 'assistant' as const, content: 'Error: Could not get response.' }]);
     } finally {

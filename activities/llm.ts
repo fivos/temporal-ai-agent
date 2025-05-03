@@ -1,6 +1,11 @@
-import fetch from 'node-fetch';
+import OpenAI from 'openai';
 
-export async function callLLM(prompt: string): Promise<string> {
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export async function callLLM(messages: Message[]): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -9,29 +14,26 @@ export async function callLLM(prompt: string): Promise<string> {
   }
 
   try {
-    console.log('Calling OpenAI API...');
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',  // Using a more widely available model
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    console.log('Calling OpenAI API with message history:', messages.length, 'messages');
+    
+    // Initialize the OpenAI client
+    const openai = new OpenAI({
+      apiKey: apiKey,
     });
 
-    if (!res.ok) {
-      const errorData = await res.text();
-      console.error('OpenAI API error:', res.status, errorData);
-      return `Error from OpenAI API: ${res.status} ${errorData}`;
-    }
+    // Call the OpenAI API using the SDK
+    const response = await openai.responses.create({
+      model: 'gpt-4.1',
+      input: messages,
+      temperature: 0.7,
+      tools: [{"type": "web_search_preview"}],
+    });
 
-    const data = await res.json() as { choices?: { message?: { content?: string } }[] };
-    const content = data.choices?.[0]?.message?.content || '';
-    console.log('Received response from OpenAI');
-    return content;
+    // Log the structure to understand what's available
+    console.log('Response structure:', Object.keys(response));
+    
+    // Get text content from the response (adjust based on actual structure)
+    return response.output_text;
   } catch (error) {
     console.error('Error calling OpenAI:', error);
     return `Error calling LLM: ${error instanceof Error ? error.message : String(error)}`;
