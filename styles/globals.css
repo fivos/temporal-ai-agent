@@ -16,6 +16,7 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --code-bg: #2a2d34;
 }
 
 html,
@@ -192,4 +193,119 @@ body {
   background-color: var(--dark-surface);
   color: var(--text-color);
   border-bottom-left-radius: 4px;
+}
+
+.loading {
+  align-self: flex-start;
+  color: var(--secondary-text);
+  font-style: italic;
+  margin-left: 1rem;
+}
+
+/* Markdown styles */
+.markdown-message {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+.markdown-message p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-message h1,
+.markdown-message h2,
+.markdown-message h3,
+.markdown-message h4,
+.markdown-message h5,
+.markdown-message h6 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-message h1 {
+  font-size: 1.5rem;
+}
+
+.markdown-message h2 {
+  font-size: 1.3rem;
+}
+
+.markdown-message h3 {
+  font-size: 1.1rem;
+}
+
+.markdown-message ul,
+.markdown-message ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-message li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-message pre {
+  background-color: var(--code-bg);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.markdown-message code {
+  background-color: var(--code-bg);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.3rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.markdown-message pre code {
+  padding: 0;
+  background-color: transparent;
+}
+
+.markdown-message a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.markdown-message a:hover {
+  text-decoration: underline;
+}
+
+.markdown-message blockquote {
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-bottom: 1rem;
+  color: var(--secondary-text);
+}
+
+.markdown-message img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  margin: 1rem 0;
+}
+
+.markdown-message table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.markdown-message table th,
+.markdown-message table td {
+  padding: 0.5rem;
+  border: 1px solid var(--dark-border);
+}
+
+.markdown-message table th {
+  background-color: var(--dark-bg);
 } 

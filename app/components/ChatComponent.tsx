@@ -3,6 +3,9 @@
 import React, { useState, useRef, FormEvent, useEffect } from 'react';
 import { IconMicrophone, IconSend, IconChevronDown } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Paper } from '@mantine/core';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -138,7 +141,20 @@ export default function ChatComponent({ chatId }: ChatComponentProps) {
           <div className="message-list">
             {messages.map((msg, i) => (
               <div key={i} className={`message ${msg.role}`}>
-                {msg.content}
+                {msg.role === 'user' ? (
+                  msg.content
+                ) : (
+                  <Paper 
+                    className="markdown-message"
+                    p="md" 
+                    withBorder={false}
+                    radius="md"
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  </Paper>
+                )}
               </div>
             ))}
             {loading && (
